@@ -1069,6 +1069,10 @@ async def main(file_urls, cctv_channel_file, province_channel_files):
 if __name__ == "__main__":
     # IPTV 文件 URL（您可以添加自己的文件 URL 列表）
     file_urls = [
+        "https://https://gitee.com/yimi321/tv/raw/master/tv.png",
+        "https://ds65.tv1288.xyz",
+        "https://gh-proxy.org/https://raw.githubusercontent.com/Jsnzkpg/Jsnzkpg/Jsnzkpg/Jsnzkpg1.m3u",
+        "http://wangziduoqing.com/yuan/zb.txt",
         "https://tzdr.com/iptv.txt",
         "https://live.kilvn.com/iptv.m3u",
         "https://m3u.ibert.me/txt/fmml_itv.txt",
