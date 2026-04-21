@@ -632,38 +632,41 @@ def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filenam
             for item in other_channels:
                 f.write(f'#EXTINF:-1 tvg-name="{item["channel"]}" group-title="其他频道",{item["channel"]}\n{item["url"]}\n')
 
-    # ====================== TXT 输出：完整分组，结构不破坏 ======================
+    # ====================== 修复：TVBox 标准分组格式 ======================
     with open(txt_filename, "w", encoding="utf-8") as f:
+        current_group = None
+
+        # 央视
         if cctv_channels_list:
-            f.write("[央视频道]\n")
+            f.write("央视频道,#genre#\n")
             for item in cctv_channels_list:
                 f.write(f"{item['channel']},{item['url']}\n")
-            f.write("\n")
 
+        # 卫视
         if satellite_channels:
-            f.write("[卫视频道]\n")
+            f.write("卫视频道,#genre#\n")
             for item in satellite_channels:
                 f.write(f"{item['channel']},{item['url']}\n")
-            f.write("\n")
 
+        # 省份
         for province in sorted(province_channels_list.keys()):
             group_list = province_channels_list[province]
             if group_list:
-                f.write(f"[{province}]\n")
+                f.write(f"{province},#genre#\n")
                 for item in group_list:
                     f.write(f"{item['channel']},{item['url']}\n")
-                f.write("\n")
 
+        # 智能分类
         for cat in SMART_CATEGORY_KEYWORDS:
             group_list = smart_category_channels.get(cat, [])
             if group_list:
-                f.write(f"[{cat}]\n")
+                f.write(f"{cat},#genre#\n")
                 for item in group_list:
                     f.write(f"{item['channel']},{item['url']}\n")
-                f.write("\n")
 
+        # 其他
         if other_channels:
-            f.write("[其他频道]\n")
+            f.write("其他频道,#genre#\n")
             for item in other_channels:
                 f.write(f"{item['channel']},{item['url']}\n")
 
