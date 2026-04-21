@@ -198,8 +198,7 @@ SCENIC_EXCLUDE_HINTS = {
 
 # 【修改点 1】去掉 pcas-code 里的 s（街道/乡镇），只使用省、市、区级别的 pca-code.json
 ONLINE_GEO_DATA_URLS = [
-    "https://raw.githubusercontent.com/modood/Administrative-divisions-of-China/master/dist/pca-code.json",
-    "https://fastly.jsdelivr.net/gh/modood/Administrative-divisions-of-China/dist/pca-code.json",
+    "pca-code.json"
 ]
 
 PROVINCE_SUFFIXES = (
