@@ -992,6 +992,7 @@ def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filenam
 
     # 生成 m3u8 的文件名 (将后缀 .m3u 替换为 .m3u8)
     m3u8_filename = filename.replace('.m3u', '.m3u8')
+    txt_filename = filename.replace('.m3u', '.txt')
     generated_at = time.strftime("%Y-%m-%d %H:%M:%S %Z", time.localtime())
     
     # 写入 M3U 和 M3U8 文件
@@ -1004,6 +1005,38 @@ def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filenam
                 f.write(
                     f"#EXTINF:-1 tvg-name=\"{channel_info['channel']}\" tvg-logo=\"{channel_info['logo']}\" group-title=\"{channel_info['group_title']}\",{channel_info['channel']}\n")
                 f.write(f"{channel_info['url']}\n")
+
+    # ==================== 已修复：生成带 #genre# 分组的 TXT 文件 ====================
+    with open(txt_filename, "w", encoding="utf-8") as f:
+        if cctv_channels_list:
+            f.write("央视频道,#genre#\n")
+            for item in cctv_channels_list:
+                f.write(f"{item['channel']},{item['url']}\n")
+
+        if satellite_channels:
+            f.write("卫视频道,#genre#\n")
+            for item in satellite_channels:
+                f.write(f"{item['channel']},{item['url']}\n")
+
+        for province in sorted(province_channels_list.keys()):
+            group_list = province_channels_list[province]
+            if group_list:
+                f.write(f"{province},#genre#\n")
+                for item in group_list:
+                    f.write(f"{item['channel']},{item['url']}\n")
+
+        for cat in SMART_CATEGORY_KEYWORDS:
+            group_list = smart_category_channels.get(cat, [])
+            if group_list:
+                f.write(f"{cat},#genre#\n")
+                for item in group_list:
+                    f.write(f"{item['channel']},{item['url']}\n")
+
+        if other_channels:
+            f.write("其他频道,#genre#\n")
+            for item in other_channels:
+                f.write(f"{item['channel']},{item['url']}\n")
+    # ==================== 修复完成 ====================
 
 def load_province_channels(files):
     """加载多个省份的频道列表"""
@@ -1069,7 +1102,7 @@ async def main(file_urls, cctv_channel_file, province_channel_files):
 if __name__ == "__main__":
     # IPTV 文件 URL（您可以添加自己的文件 URL 列表）
     file_urls = [
-        "https://https://gitee.com/yimi321/tv/raw/master/tv.png",
+        "https://gitee.com/yimi321/tv/raw/master/tv.png",
         "https://ds65.tv1288.xyz",
         "https://gh-proxy.org/https://raw.githubusercontent.com/Jsnzkpg/Jsnzkpg/Jsnzkpg/Jsnzkpg1.m3u",
         "http://wangziduoqing.com/yuan/zb.txt",
