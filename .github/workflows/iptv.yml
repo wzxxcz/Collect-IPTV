@@ -11,7 +11,6 @@ env:
 jobs:
   scrape-and-update:
     runs-on: ubuntu-latest
-    # 这一行是修复 exit code 128 的关键（必须加）
     permissions:
       contents: write
     steps:
@@ -38,15 +37,17 @@ jobs:
       run: |
         file_link="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref }}/best_sorted.m3u"
         file_link1="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref }}/best_sorted.m3u8"
+        file_link2="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref }}/best_sorted.txt"
         sed -i "s|<!-- Last Run Time -->.*|<!-- Last Run Time --> ${GET_TIME}|" README.md
-        sed -i "s|<!-- Generated File Link M3U -->.*|<!-- Generated File Link M3U --> [View M3U File](${file_link})|" README.md
-        sed -i "s|<!-- Generated File Link M3U8 -->.*|<!-- Generated File Link M3U8 --> [View M3U8 File](${file_link1})|" README.md
+        sed -i "s|<!-- Generated File Link M3U -->.*|<!-- Generated File Link M3U --> [View M3U](${file_link})|" README.md
+        sed -i "s|<!-- Generated File Link M3U8 -->.*|<!-- Generated File Link M3U8 --> [View M3U8](${file_link1})|" README.md
+        sed -i "s|<!-- Generated File Link TXT -->.*|<!-- Generated File Link TXT --> [View TXT](${file_link2})|" README.md
 
     - name: Commit and Push changes
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
-        git add README.md best_sorted.m3u best_sorted.m3u8 2>/dev/null || true
+        git add README.md best_sorted.m3u best_sorted.m3u8 best_sorted.txt 2>/dev/null || true
         git commit -am "自动更新：${GET_TIME}" || echo "没有需要提交的变更"
         git push
       env:
