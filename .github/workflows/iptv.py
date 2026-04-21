@@ -904,9 +904,9 @@ async def read_and_test_file(
         return []
 
 
-# 生成排序后的 M3U 和 M3U8 文件
+# 生成排序后的 M3U、M3U8 和 TXT 文件
 def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filename):
-    """生成排序后的 M3U 和 M3U8 文件"""
+    """生成排序后的 M3U、M3U8 和 TXT 文件"""
     cctv_channels_list = []
     province_channels_list = defaultdict(list)
     satellite_channels = []
@@ -992,6 +992,8 @@ def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filenam
 
     # 生成 m3u8 的文件名 (将后缀 .m3u 替换为 .m3u8)
     m3u8_filename = filename.replace('.m3u', '.m3u8')
+    # 新增 txt 文件名
+    txt_filename = filename.replace('.m3u', '.txt')
     generated_at = time.strftime("%Y-%m-%d %H:%M:%S %Z", time.localtime())
     
     # 写入 M3U 和 M3U8 文件
@@ -1004,6 +1006,12 @@ def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filenam
                 f.write(
                     f"#EXTINF:-1 tvg-name=\"{channel_info['channel']}\" tvg-logo=\"{channel_info['logo']}\" group-title=\"{channel_info['group_title']}\",{channel_info['channel']}\n")
                 f.write(f"{channel_info['url']}\n")
+    
+    # 【新增】写入 TXT 文件（频道名,URL 格式）
+    with open(txt_filename, 'w', encoding='utf-8') as f:
+        for channel_info in all_channels:
+            f.write(f"{channel_info['channel']},{channel_info['url']}\n")
+
 
 def load_province_channels(files):
     """加载多个省份的频道列表"""
@@ -1064,6 +1072,8 @@ async def main(file_urls, cctv_channel_file, province_channel_files):
     # 生成排序后的 M3U 文件
     generate_sorted_m3u(best_entries, cctv_channels, province_channels, CONFIG["output_file"])
     print(f"Generated sorted M3U file: {CONFIG['output_file']}")
+    print(f"Generated sorted M3U8 file: {CONFIG['output_file'].replace('.m3u', '.m3u8')}")
+    print(f"Generated sorted TXT file: {CONFIG['output_file'].replace('.m3u', '.txt')}")
 
 
 if __name__ == "__main__":
