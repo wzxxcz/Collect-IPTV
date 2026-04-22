@@ -1144,6 +1144,8 @@ if __name__ == "__main__":
         "https://gongdian.top/tv/iptv",
         "https://gitee.com/hzxs800274/iptv/raw/master/live/TV",
         "https://gitee.com/zwssina/yunduanyuan/raw/master/SB",
+        "https://hub.glowp.xyz/https://raw.githubusercontent.com/wujiangliu/live-sources/main/DIY.txt",
+        "https://gh-proxy.org/https://raw.githubusercontent.com/adminouyang/TV-yjc/refs/heads/main/IP_Scan/output/%E5%AE%89%E5%BE%BD%E7%94%B5%E4%BF%A1.txt",
         "https://tzdr.com/iptv.txt",
         "https://live.kilvn.com/iptv.m3u",
         "https://m3u.ibert.me/txt/fmml_itv.txt",
