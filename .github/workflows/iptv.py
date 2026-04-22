@@ -7,6 +7,20 @@ from collections import Counter, defaultdict
 import re
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Any
 
+# ==================== ✅ 可扩展过滤配置（以后只改这里） ====================
+# 频道名包含这些关键词 → 自动过滤
+FILTER_CHANNEL_NAMES = [
+    "本道",
+    # 想加新关键词直接往下写
+]
+
+# 链接地址包含这些字符 → 自动过滤
+FILTER_URL_KEYWORDS = [
+    "ddyunbo",
+    # 想加新链接过滤直接往下写
+]
+# ==================== ✅ 可扩展过滤配置 结束 ====================
+
 def contains_date(text):
     """
     检测字符串中是否包含日期格式（如 YYYY-MM-DD）
@@ -27,7 +41,6 @@ CONFIG = {
     "timeout": 10,  # Timeout in seconds
     "max_parallel": 30,  # Max concurrent requests
     "output_file": "best_sorted.m3u",  # Output file for the sorted M3U
-    "filter_keyword": "本道",      # 过滤包含这个词的频道（恢复就设为空 ""）
 }
 
 CHAR_NORMALIZATION_MAP = str.maketrans({
@@ -127,7 +140,7 @@ COMMON_CHANNEL_SUFFIXES = (
     "影视娱乐频道", "影视娱乐",
     "影視娛樂頻道", "影視娛樂",
     "经济生活频道", "经济生活",
-    "經濟生活頻道", "經濟生活",
+    "經濟生活頻道", "經濟",
     "文体旅游频道", "文体旅游",
     "文體旅遊頻道", "文體旅遊",
     "文旅频道", "文旅",
@@ -159,8 +172,6 @@ COMMON_CHANNEL_SUFFIXES = (
     "影视", "影視", "导视频道", "导视", "導視頻道", "導視",
     "生活频道", "生活頻道", "文艺频道", "文艺", "文藝頻道", "文藝",
     "法治频道", "法治頻道", "军事频道", "軍事頻道",
-    "电视台", "電視台", "频道", "頻道", "直播",
-    "高清", "超清", "标清",
 )
 
 NON_GEO_TOKENS = {
@@ -626,7 +637,7 @@ def _extract_channel_candidates(text: str) -> List[str]:
     patterns = [
         r"(?i)CCTV[\s-]?\d+\+?",
         r"(?i)(?:CGTN|CHC)[A-Z0-9+\-]*",
-        r"[\u4e00-\u9fffA-Za-z0-9+]{1,24}(?:卫视|衛視|频道|頻道|影视|影視頻道|电影|電影|新闻|新聞|综合|綜合|体育|體育|少儿|少兒|科教|经济|經濟|生活|都市|公共|纪实|紀實|卡通|动画|動漫|戏曲|戲曲|文旅|电视台|電視台|电视|電視|台|TV)",
+        r"[\u4e00-\u9fffA-Za-z0-9+]{1,24}(?:卫视|衛視|频道|頻道|影视|影視頻道|电影|電影|新闻|新聞|综合|綜合|体育|體体育|少儿|少少儿|科教|经济|經濟|生活|都市|公共|纪实|紀實|卡通|动画|動漫|戏曲|戲曲|文旅|电视台|電視台|电视|電視|台|TV)",
     ]
 
     for candidate_source in (raw_without_urls, source):
@@ -1026,49 +1037,68 @@ def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filenam
                 f.write(f"#EXTINF:-1 tvg-id=\"{tvg_id}\" tvg-name=\"{channel_info['channel']}\" tvg-logo=\"{channel_info['logo']}\" group-title=\"{channel_info['group_title']}\",{channel_info['channel']}\n")
                 f.write(f"{channel_info['url']}\n")
 
-    # ==================== 已修复：生成带 #genre# 分组的 TXT 文件（已过滤“本道”） ====================
+    # ==================== ✅ 智能过滤函数（集中式管理） ====================
+    def is_channel_allowed(item):
+        """
+        统一判断频道是否允许输出
+        以后只需要修改顶部的 FILTER_CHANNEL_NAMES 和 FILTER_URL_KEYWORDS 即可
+        """
+        channel_name = item.get('channel', '')
+        url = item.get('url', '')
+
+        # 过滤频道名
+        for keyword in FILTER_CHANNEL_NAMES:
+            if keyword and keyword in channel_name:
+                return False
+
+        # 过滤链接
+        for keyword in FILTER_URL_KEYWORDS:
+            if keyword and keyword in url:
+                return False
+
+        return True
+    # ==================== 过滤函数结束 ====================
+
+    # 写入带分组、带过滤的 TXT 文件
     with open(txt_filename, "w", encoding="utf-8") as f:
-        filter_word = CONFIG.get("filter_keyword", "")
-        
+        # 央视频道
         if cctv_channels_list:
             f.write("央视频道,#genre#\n")
             for item in cctv_channels_list:
-                if filter_word and (filter_word in item['channel'] or filter_word in item['url']):
-                    continue
-                f.write(f"{item['channel']},{item['url']}\n")
+                if is_channel_allowed(item):
+                    f.write(f"{item['channel']},{item['url']}\n")
 
+        # 卫视频道
         if satellite_channels:
             f.write("卫视频道,#genre#\n")
             for item in satellite_channels:
-                if filter_word and (filter_word in item['channel'] or filter_word in item['url']):
-                    continue
-                f.write(f"{item['channel']},{item['url']}\n")
+                if is_channel_allowed(item):
+                    f.write(f"{item['channel']},{item['url']}\n")
 
+        # 各省频道
         for province in sorted(province_channels_list.keys()):
             group_list = province_channels_list[province]
             if group_list:
                 f.write(f"{province},#genre#\n")
                 for item in group_list:
-                    if filter_word and (filter_word in item['channel'] or filter_word in item['url']):
-                        continue
-                    f.write(f"{item['channel']},{item['url']}\n")
+                    if is_channel_allowed(item):
+                        f.write(f"{item['channel']},{item['url']}\n")
 
+        # 智能分类频道
         for cat in SMART_CATEGORY_KEYWORDS:
             group_list = smart_category_channels.get(cat, [])
             if group_list:
                 f.write(f"{cat},#genre#\n")
                 for item in group_list:
-                    if filter_word and (filter_word in item['channel'] or filter_word in item['url']):
-                        continue
-                    f.write(f"{item['channel']},{item['url']}\n")
+                    if is_channel_allowed(item):
+                        f.write(f"{item['channel']},{item['url']}\n")
 
+        # 其他频道
         if other_channels:
             f.write("其他频道,#genre#\n")
             for item in other_channels:
-                if filter_word and (filter_word in item['channel'] or filter_word in item['url']):
-                    continue
-                f.write(f"{item['channel']},{item['url']}\n")
-    # ==================== 过滤完成 ====================
+                if is_channel_allowed(item):
+                    f.write(f"{item['channel']},{item['url']}\n")
 
 def load_province_channels(files):
     """加载多个省份的频道列表"""
@@ -1154,7 +1184,7 @@ if __name__ == "__main__":
         "http://ko.zoho.to/ii/32799.txt",
         "http://ibox.x10.mx/555.txt",
         "https://gitee.com/yimi321/ymys/raw/master/lib/tv.png",
-        "https://gongdian.top/tv/iptv",
+        "shturl.cc/MKKLMtEzy6YQUVwJL5",
         "https://gitee.com/hzxs800274/iptv/raw/master/live/TV",
         "https://gitee.com/zwssina/yunduanyuan/raw/master/SB",
         "https://hub.glowp.xyz/https://raw.githubusercontent.com/wujiangliu/live-sources/main/DIY.txt",
