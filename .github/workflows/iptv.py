@@ -763,7 +763,7 @@ def choose_better_entry(current_best: Dict[str, Any], candidate: Dict[str, Any])
     return candidate if cand_score < best_score else current_best
 
 
-# ==================== 【核心修改：所有频道都保留全部有效源，只去重URL】 ====================
+# ==================== 【核心修改：所有频道都保留全部有效源，只去重URL + 统一频道名】 ====================
 def select_best_streams(valid_entries: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     所有频道统一规则：
@@ -771,8 +771,10 @@ def select_best_streams(valid_entries: Iterable[Dict[str, Any]]) -> List[Dict[st
     2) 同频道名 + 不同URL → 全部保留（不选优、不合并）
     3) 输出时每个频道名只出现一次，但有多行源
     """
-    selected: List[Dict[str, Any]] = []
-    seen: Set[Tuple[str, str]] = set()  # (频道ID, URL) 用于去重
+    from collections import defaultdict
+
+    channel_groups = defaultdict(list)
+    display_name_map = {}
 
     for entry in valid_entries:
         channel = sanitize_channel_name(str(entry.get("channel", "")).strip())
@@ -780,18 +782,29 @@ def select_best_streams(valid_entries: Iterable[Dict[str, Any]]) -> List[Dict[st
         if not channel or not url:
             continue
 
-        # 生成唯一键：频道ID + URL
-        key = (channel_identity_key(channel), url)
-        if key in seen:
-            continue
-        seen.add(key)
+        chan_id = channel_identity_key(channel)
+        if chan_id not in display_name_map:
+            display_name_map[chan_id] = channel
 
-        # 保留完整条目
-        selected.append(dict(entry))
+        channel_groups[chan_id].append({
+            "url": url,
+            "source_group_title": entry.get("source_group_title"),
+            "latency": entry.get("latency"),
+        })
 
-    # 保持原有排序逻辑
-    selected.sort(key=lambda x: natural_sort_key(str(x.get("channel", ""))))
-    return selected
+    final = []
+    for chan_id, sources in channel_groups.items():
+        display_name = display_name_map[chan_id]
+        for src in sources:
+            final.append({
+                "channel": display_name,
+                "url": src["url"],
+                "source_group_title": src["source_group_title"],
+                "latency": src["latency"],
+            })
+
+    final.sort(key=lambda x: natural_sort_key(str(x.get("channel", ""))))
+    return final
 # ==================== 【修改结束】 ====================
 
 
@@ -1007,8 +1020,9 @@ def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filenam
             f.write(f"# Generated-Time: {generated_at}\n")
             f.write(f"# Channel-Count: {len(all_channels)}\n")
             for channel_info in all_channels:
-                f.write(
-                    f"#EXTINF:-1 tvg-name=\"{channel_info['channel']}\" tvg-logo=\"{channel_info['logo']}\" group-title=\"{channel_info['group_title']}\",{channel_info['channel']}\n")
+                # ==================== 【已加 tvg-id 让播放器合并多源】 ====================
+                tvg_id = channel_identity_key(channel_info['channel']).lower()
+                f.write(f"#EXTINF:-1 tvg-id=\"{tvg_id}\" tvg-name=\"{channel_info['channel']}\" tvg-logo=\"{channel_info['logo']}\" group-title=\"{channel_info['group_title']}\",{channel_info['channel']}\n")
                 f.write(f"{channel_info['url']}\n")
 
     # ==================== 已修复：生成带 #genre# 分组的 TXT 文件 ====================
