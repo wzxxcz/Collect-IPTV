@@ -84,7 +84,6 @@ CHAR_NORMALIZATION_MAP = str.maketrans({
     "錫": "锡",
 })
 
-
 PROVINCE_ALIASES = {
     "北京": {"北京台"},
     "上海": {"上海台", "东方明珠", "沪上"},
@@ -764,13 +763,16 @@ def choose_better_entry(current_best: Dict[str, Any], candidate: Dict[str, Any])
     return candidate if cand_score < best_score else current_best
 
 
+# ==================== 【核心修改：所有频道都保留全部有效源，只去重URL】 ====================
 def select_best_streams(valid_entries: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    去重并选优：
-    1) 同频道同 URL 去重
-    2) 同频道保留最低延迟（并优先 https）的最佳 URL
+    所有频道统一规则：
+    1) 同频道名 + 同URL → 去重
+    2) 同频道名 + 不同URL → 全部保留（不选优、不合并）
+    3) 输出时每个频道名只出现一次，但有多行源
     """
-    best_by_channel: Dict[str, Dict[str, Any]] = {}
+    selected: List[Dict[str, Any]] = []
+    seen: Set[Tuple[str, str]] = set()  # (频道ID, URL) 用于去重
 
     for entry in valid_entries:
         channel = sanitize_channel_name(str(entry.get("channel", "")).strip())
@@ -778,16 +780,19 @@ def select_best_streams(valid_entries: Iterable[Dict[str, Any]]) -> List[Dict[st
         if not channel or not url:
             continue
 
-        key = channel_identity_key(channel)
-        current = best_by_channel.get(key)
-        if current is None:
-            best_by_channel[key] = dict(entry)
-        else:
-            best_by_channel[key] = choose_better_entry(current, entry)
+        # 生成唯一键：频道ID + URL
+        key = (channel_identity_key(channel), url)
+        if key in seen:
+            continue
+        seen.add(key)
 
-    selected = list(best_by_channel.values())
+        # 保留完整条目
+        selected.append(dict(entry))
+
+    # 保持原有排序逻辑
     selected.sort(key=lambda x: natural_sort_key(str(x.get("channel", ""))))
     return selected
+# ==================== 【修改结束】 ====================
 
 
 # 从 TXT 文件中提取 IPTV 链接
