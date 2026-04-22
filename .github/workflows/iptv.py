@@ -27,6 +27,7 @@ CONFIG = {
     "timeout": 10,  # Timeout in seconds
     "max_parallel": 30,  # Max concurrent requests
     "output_file": "best_sorted.m3u",  # Output file for the sorted M3U
+    "filter_keyword": "本道",      # 过滤包含这个词的频道（恢复就设为空 ""）
 }
 
 CHAR_NORMALIZATION_MAP = str.maketrans({
@@ -1025,16 +1026,22 @@ def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filenam
                 f.write(f"#EXTINF:-1 tvg-id=\"{tvg_id}\" tvg-name=\"{channel_info['channel']}\" tvg-logo=\"{channel_info['logo']}\" group-title=\"{channel_info['group_title']}\",{channel_info['channel']}\n")
                 f.write(f"{channel_info['url']}\n")
 
-    # ==================== 已修复：生成带 #genre# 分组的 TXT 文件 ====================
+    # ==================== 已修复：生成带 #genre# 分组的 TXT 文件（已过滤“本道”） ====================
     with open(txt_filename, "w", encoding="utf-8") as f:
+        filter_word = CONFIG.get("filter_keyword", "")
+        
         if cctv_channels_list:
             f.write("央视频道,#genre#\n")
             for item in cctv_channels_list:
+                if filter_word and (filter_word in item['channel'] or filter_word in item['url']):
+                    continue
                 f.write(f"{item['channel']},{item['url']}\n")
 
         if satellite_channels:
             f.write("卫视频道,#genre#\n")
             for item in satellite_channels:
+                if filter_word and (filter_word in item['channel'] or filter_word in item['url']):
+                    continue
                 f.write(f"{item['channel']},{item['url']}\n")
 
         for province in sorted(province_channels_list.keys()):
@@ -1042,6 +1049,8 @@ def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filenam
             if group_list:
                 f.write(f"{province},#genre#\n")
                 for item in group_list:
+                    if filter_word and (filter_word in item['channel'] or filter_word in item['url']):
+                        continue
                     f.write(f"{item['channel']},{item['url']}\n")
 
         for cat in SMART_CATEGORY_KEYWORDS:
@@ -1049,13 +1058,17 @@ def generate_sorted_m3u(valid_entries, cctv_channels, province_channels, filenam
             if group_list:
                 f.write(f"{cat},#genre#\n")
                 for item in group_list:
+                    if filter_word and (filter_word in item['channel'] or filter_word in item['url']):
+                        continue
                     f.write(f"{item['channel']},{item['url']}\n")
 
         if other_channels:
             f.write("其他频道,#genre#\n")
             for item in other_channels:
+                if filter_word and (filter_word in item['channel'] or filter_word in item['url']):
+                    continue
                 f.write(f"{item['channel']},{item['url']}\n")
-    # ==================== 修复完成 ====================
+    # ==================== 过滤完成 ====================
 
 def load_province_channels(files):
     """加载多个省份的频道列表"""
