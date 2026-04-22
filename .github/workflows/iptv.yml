@@ -5,8 +5,10 @@ on:
     - cron: '0 */4 * * *'
   workflow_dispatch:
 
+# 👇 👇 👇 【仅新增这1行配置，消除警告，不影响任何功能】
 env:
   TZ: Asia/Shanghai
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   scrape-and-update:
